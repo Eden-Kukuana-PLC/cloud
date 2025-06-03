@@ -152,6 +152,34 @@ variable "worker_node_ipv6_enabled" {
     default     = true
 }
 
+# Agent nodes configuration
+variable "agent_nodes" {
+    description = "Map of agent nodes to create"
+    type = map(object({
+        name        = string
+        image       = optional(string, "ubuntu-24.04")
+        server_type = optional(string, "cx22")
+        location    = optional(string, "nbg1")
+        ipv4_enabled = optional(bool, true)
+        ipv6_enabled = optional(bool, true)
+    }))
+    default = {}
+}
+
+# Additional control planes configuration
+variable "additional_control_planes" {
+    description = "Map of additional control plane nodes to create"
+    type = map(object({
+        name        = string
+        image       = optional(string, "ubuntu-24.04")
+        server_type = optional(string, "cx22")
+        location    = optional(string, "nbg1")
+        ipv4_enabled = optional(bool, true)
+        ipv6_enabled = optional(bool, true)
+    }))
+    default = {}
+}
+
 # SSH key configuration
 variable "ssh_public_key" {
     description = "SSH public key for machine-to-machine communication"

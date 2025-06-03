@@ -1,6 +1,16 @@
 # Hetzner Kubernetes Cluster Module
 
-This Terraform module creates a Kubernetes cluster on Hetzner Cloud.
+This Terraform module creates a Kubernetes cluster on Hetzner Cloud with a flexible architecture.
+
+## Architecture
+
+The module creates three types of resources:
+
+1. **Master Control Plane**: The central node for the Kubernetes control plane
+2. **Additional Control Planes**: Additional control plane nodes that reference the main master
+3. **Agent Nodes**: Worker nodes that join the cluster but don't run control plane components
+
+This architecture allows you to declaratively create and name multiple control planes and agent nodes.
 
 ## Usage
 
@@ -19,14 +29,14 @@ module "k8s_cluster" {
   subnet_ip_range    = "10.0.1.0/24"
 
   # Primary IP configuration
-  primary_ip_name        = "master-ip"
-  primary_ip_datacenter  = "fsn1-dc14"
-  primary_ip_type        = "ipv4"
-  primary_ip_assignee_type = "server"
-  primary_ip_auto_delete = true
+  master_ip_name        = "master-ip"
+  master_ip_datacenter  = "fsn1-dc14"
+  master_ip_type        = "ipv4"
+  master_ip_assignee_type = "server"
+  master_ip_auto_delete = true
 
-  # Master node configuration
-  master_node_name       = "master-node"
+  # Master control plane configuration
+  master_node_name       = "master-control-plane"
   master_node_image      = "ubuntu-24.04"
   master_node_server_type = "cx22"
   master_node_location   = "fsn1"
@@ -34,14 +44,39 @@ module "k8s_cluster" {
   master_node_ipv6_enabled = true
   master_node_static_ip  = "10.0.1.1"
 
-  # Worker nodes configuration
-  worker_nodes_count     = 2
-  worker_node_name_prefix = "worker-node"
-  worker_node_image      = "ubuntu-24.04"
-  worker_node_server_type = "cx22"
-  worker_node_location   = "nbg1"
-  worker_node_ipv4_enabled = true
-  worker_node_ipv6_enabled = true
+  # Additional control planes configuration
+  additional_control_planes = {
+    "control-plane-1" = {
+      name        = "control-plane-1"
+      image       = "ubuntu-24.04"
+      server_type = "cx22"
+      location    = "nbg1"
+      ipv4_enabled = true
+      ipv6_enabled = true
+    },
+    "control-plane-2" = {
+      name        = "control-plane-2"
+      server_type = "cx22"
+      location    = "fsn1"
+    }
+  }
+
+  # Agent nodes configuration
+  agent_nodes = {
+    "agent-1" = {
+      name        = "agent-1"
+      image       = "ubuntu-24.04"
+      server_type = "cx22"
+      location    = "nbg1"
+      ipv4_enabled = true
+      ipv6_enabled = true
+    },
+    "agent-2" = {
+      name        = "agent-2"
+      server_type = "cx22"
+      location    = "fsn1"
+    }
+  }
 
   # SSH and authentication configuration
   ssh_public_key = var.ssh_public_key
@@ -82,9 +117,10 @@ The separation of Kubernetes resources into a submodule helps avoid issues with 
 |------|------|
 | [hcloud_network.private_network](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/network) | resource |
 | [hcloud_network_subnet.private_network_subnet](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/network_subnet) | resource |
-| [hcloud_primary_ip.primary_ip_1](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/primary_ip) | resource |
-| [hcloud_server.master-node](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
-| [hcloud_server.worker-nodes](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+| [hcloud_primary_ip.master_ip](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/primary_ip) | resource |
+| [hcloud_server.master-control-plane](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+| [hcloud_server.additional-control-planes](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+| [hcloud_server.agent-nodes](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
 | [module.hetzner_k8s_interfaces](../hetzner_k8s_interfaces) | module |
 
 ### hetzner_k8s_interfaces Module Resources
@@ -117,13 +153,8 @@ The separation of Kubernetes resources into a submodule helps avoid issues with 
 | master_node_ipv4_enabled | Whether IPv4 is enabled for the master node | `bool` | `true` | no |
 | master_node_ipv6_enabled | Whether IPv6 is enabled for the master node | `bool` | `true` | no |
 | master_node_static_ip | Static IP for the master node in the private network | `string` | `"10.0.1.1"` | no |
-| worker_nodes_count | Number of worker nodes | `number` | `2` | no |
-| worker_node_name_prefix | Prefix for worker node names | `string` | `"worker-node"` | no |
-| worker_node_image | Image for worker nodes | `string` | `"ubuntu-24.04"` | no |
-| worker_node_server_type | Server type for worker nodes | `string` | `"cx22"` | no |
-| worker_node_location | Location for worker nodes | `string` | `"nbg1"` | no |
-| worker_node_ipv4_enabled | Whether IPv4 is enabled for worker nodes | `bool` | `true` | no |
-| worker_node_ipv6_enabled | Whether IPv6 is enabled for worker nodes | `bool` | `true` | no |
+| additional_control_planes | Map of additional control plane nodes to create | `map(object)` | `{}` | no |
+| agent_nodes | Map of agent nodes to create | `map(object)` | `{}` | no |
 | ssh_public_key | SSH public key for machine-to-machine communication | `string` | n/a | yes |
 | ssh_private_key | SSH private key for machine-to-machine communication | `string` | n/a | yes |
 | root_password | Password for root user access | `string` | n/a | yes |
@@ -227,14 +258,16 @@ jobs:
 | subnet_id | ID of the Hetzner Cloud Network Subnet |
 | subnet_ip_range | IP range of the Hetzner Cloud Network Subnet |
 | subnet_network_zone | Network zone of the Hetzner Cloud Network Subnet |
-| master_node_id | ID of the master node |
-| master_node_name | Name of the master node |
-| master_node_ipv4_address | Public IPv4 address of the master node |
-| master_node_private_ip | Private IP address of the master node |
-| worker_nodes_ids | IDs of the worker nodes |
-| worker_nodes_names | Names of the worker nodes |
-| worker_nodes_ipv4_addresses | Public IPv4 addresses of the worker nodes |
-| worker_nodes_private_ips | Private IP addresses of the worker nodes |
+| master_control_plane_id | ID of the master control plane node |
+| master_control_plane_name | Name of the master control plane node |
+| master_control_plane_ipv4_address | Public IPv4 address of the master control plane node |
+| master_control_plane_private_ip | Private IP address of the master control plane node |
+| additional_control_planes_ids | Map of IDs of the additional control plane nodes |
+| additional_control_planes_names | Map of names of the additional control plane nodes |
+| additional_control_planes_ipv4_addresses | Map of public IPv4 addresses of the additional control plane nodes |
+| agent_nodes_ids | Map of IDs of the agent nodes |
+| agent_nodes_names | Map of names of the agent nodes |
+| agent_nodes_ipv4_addresses | Map of public IPv4 addresses of the agent nodes |
 
 ### hetzner_k8s_interfaces Module Outputs
 

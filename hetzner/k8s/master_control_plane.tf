@@ -1,3 +1,6 @@
+# Master Control Plane Node
+# This is the central node for the Kubernetes control plane
+
 resource "hcloud_primary_ip" "master_ip" {
   name          = var.master_ip_name
   datacenter    = var.master_ip_datacenter
@@ -9,7 +12,7 @@ resource "hcloud_primary_ip" "master_ip" {
   }
 }
 
-resource "hcloud_server" "master-node" {
+resource "hcloud_server" "master-control-plane" {
   name        = var.master_node_name
   image       = var.master_node_image
   server_type = var.master_node_server_type
@@ -33,25 +36,4 @@ resource "hcloud_server" "master-node" {
   # If we don't specify this, Terraform will create the resources in parallel
   # We want this node to be created after the private network is created
   depends_on = [hcloud_network_subnet.private_network_subnet]
-}
-
-# Master node outputs
-output "master_node_id" {
-  description = "ID of the master node"
-  value       = hcloud_server.master-node.id
-}
-
-output "master_node_name" {
-  description = "Name of the master node"
-  value       = hcloud_server.master-node.name
-}
-
-output "master_node_ipv4_address" {
-  description = "Public IPv4 address of the master node"
-  value       = hcloud_server.master-node.ipv4_address
-}
-
-output "master_node_private_ip" {
-  description = "Private IP address of the master node"
-  value       = var.master_node_static_ip
 }

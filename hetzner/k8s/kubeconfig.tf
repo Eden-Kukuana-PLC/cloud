@@ -1,6 +1,6 @@
 # Fetch kubeconfig from master node
 resource "null_resource" "fetch_kubeconfig" {
-  depends_on = [hcloud_server.master-node]
+  depends_on = [hcloud_server.master-control-plane]
 
   # Create .kube directory if it doesn't exist
   provisioner "local-exec" {
@@ -20,7 +20,7 @@ EOK
       # Wait for k3s to be fully initialized (up to 2 minutes)
       echo "Waiting for k3s to be fully initialized..."
       for i in {1..12}; do
-        if ssh -o StrictHostKeyChecking=no -i ${path.module}/.ssh/id_temp cluster@${hcloud_server.master-node.ipv4_address} 'test -f /etc/rancher/k3s/k3s.yaml && sudo k3s kubectl get nodes'; then
+        if ssh -o StrictHostKeyChecking=no -i ${path.module}/.ssh/id_temp cluster@${hcloud_server.master-control-plane.ipv4_address} 'test -f /etc/rancher/k3s/k3s.yaml && sudo k3s kubectl get nodes'; then
           echo "k3s is initialized and ready"
           break
         fi
@@ -30,7 +30,7 @@ EOK
 
       # Fetch kubeconfig from master node
       echo "Fetching kubeconfig from master node..."
-      ssh -o StrictHostKeyChecking=no -i ${path.module}/.ssh/id_temp cluster@${hcloud_server.master-node.ipv4_address} 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed 's/127.0.0.1/${hcloud_server.master-node.ipv4_address}/g' > ${path.module}/.kube/config
+      ssh -o StrictHostKeyChecking=no -i ${path.module}/.ssh/id_temp cluster@${hcloud_server.master-control-plane.ipv4_address} 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed 's/127.0.0.1/${hcloud_server.master-control-plane.ipv4_address}/g' > ${path.module}/.kube/config
       chmod 600 ${path.module}/.kube/config
 
       # Clean up the temporary key file
@@ -41,7 +41,7 @@ EOK
 
   # This ensures the resource is recreated when the master node changes
   triggers = {
-    master_node_id = hcloud_server.master-node.id
+    master_node_id = hcloud_server.master-control-plane.id
   }
 }
 
