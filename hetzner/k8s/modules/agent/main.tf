@@ -20,6 +20,8 @@ resource "hcloud_server" "agent" {
   }
   network {
     network_id = var.network_id
+    ip         = var.private_network_ip
+    alias_ips  = var.private_ip_aliases
   }
   user_data = templatefile("${path.module}/cloud-init.yaml.tpl", {
     ssh_public_key  = var.ssh_public_key
