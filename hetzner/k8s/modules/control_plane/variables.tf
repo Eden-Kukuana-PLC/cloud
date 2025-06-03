@@ -55,14 +55,3 @@ variable "master_node_ip" {
   description = "IP address of the master node"
   type        = string
 }
-
-variable "private_network_ip" {
-  description = "The private IP of the of the agent, should be in the subnet ip range"
-  type        = string
-}
-
-variable "private_ip_aliases" {
-  type        = list(string)
-  default     = []
-  description = "An optional list with a default empty value"
-}
