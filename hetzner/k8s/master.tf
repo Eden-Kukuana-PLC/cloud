@@ -27,6 +27,7 @@ resource "hcloud_server" "master-node" {
   }
   user_data = templatefile("${path.module}/init/master.yaml.tpl", {
     ssh_public_key = var.ssh_public_key
+    master_node_ip = var.master_node_static_ip
   })
 
   # If we don't specify this, Terraform will create the resources in parallel
