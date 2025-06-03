@@ -1,3 +1,14 @@
+# Network Module
+# This module creates a private network and subnet for the Kubernetes cluster
+terraform {
+  required_providers {
+    hcloud = {
+      source  = "hetznercloud/hcloud"
+      version = "1.51.0"
+    }
+  }
+}
+
 resource "hcloud_network" "private_network" {
   name     = var.network_name
   ip_range = var.network_ip_range

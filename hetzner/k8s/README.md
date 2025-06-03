@@ -12,6 +12,17 @@ The module creates three types of resources:
 
 This architecture allows you to declaratively create and name multiple control planes and agent nodes.
 
+### Modular Resource Approach
+
+The module now uses a modular approach for additional control planes and agent nodes:
+
+- Each control plane and agent node is created as a separate resource
+- This prevents recreation of all nodes when adding or removing individual nodes
+- You can add new nodes by simply declaring new resources in your configuration
+- Each node must specify its own SSH details and server configuration
+
+This approach ensures that when you need to add or remove nodes, only the affected nodes are created or destroyed, without impacting existing infrastructure.
+
 ## Usage
 
 ```hcl
@@ -45,6 +56,7 @@ module "k8s_cluster" {
   master_node_static_ip  = "10.0.1.1"
 
   # Additional control planes configuration
+  # Each control plane is defined as a separate resource
   additional_control_planes = {
     "control-plane-1" = {
       name        = "control-plane-1"
@@ -53,15 +65,22 @@ module "k8s_cluster" {
       location    = "nbg1"
       ipv4_enabled = true
       ipv6_enabled = true
-    },
-    "control-plane-2" = {
-      name        = "control-plane-2"
-      server_type = "cx22"
-      location    = "fsn1"
     }
   }
 
+  # To add another control plane, simply add a new entry
+  # This won't affect existing control planes
+  # additional_control_planes = {
+  #   "control-plane-1" = { ... },
+  #   "control-plane-2" = {
+  #     name        = "control-plane-2"
+  #     server_type = "cx22"
+  #     location    = "fsn1"
+  #   }
+  # }
+
   # Agent nodes configuration
+  # Each agent node is defined as a separate resource
   agent_nodes = {
     "agent-1" = {
       name        = "agent-1"
@@ -70,13 +89,19 @@ module "k8s_cluster" {
       location    = "nbg1"
       ipv4_enabled = true
       ipv6_enabled = true
-    },
-    "agent-2" = {
-      name        = "agent-2"
-      server_type = "cx22"
-      location    = "fsn1"
     }
   }
+
+  # To add another agent node, simply add a new entry
+  # This won't affect existing agent nodes
+  # agent_nodes = {
+  #   "agent-1" = { ... },
+  #   "agent-2" = {
+  #     name        = "agent-2"
+  #     server_type = "cx22"
+  #     location    = "fsn1"
+  #   }
+  # }
 
   # SSH and authentication configuration
   ssh_public_key = var.ssh_public_key
@@ -117,11 +142,29 @@ The separation of Kubernetes resources into a submodule helps avoid issues with 
 |------|------|
 | [hcloud_network.private_network](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/network) | resource |
 | [hcloud_network_subnet.private_network_subnet](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/network_subnet) | resource |
-| [hcloud_primary_ip.master_ip](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/primary_ip) | resource |
-| [hcloud_server.master-control-plane](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
-| [hcloud_server.additional-control-planes](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
-| [hcloud_server.agent-nodes](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+| [module.master_control_plane](./modules/master_control_plane) | module |
+| [module.additional_control_plane](./modules/additional_control_plane) | module |
+| [module.agent](./modules/agent) | module |
 | [module.hetzner_k8s_interfaces](../hetzner_k8s_interfaces) | module |
+
+### Master Control Plane Module Resources
+
+| Name | Type |
+|------|------|
+| [hcloud_primary_ip.master_ip](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/primary_ip) | resource |
+| [hcloud_server.master_control_plane](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+
+### Additional Control Plane Module Resources
+
+| Name | Type |
+|------|------|
+| [hcloud_server.additional_control_plane](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
+
+### Agent Module Resources
+
+| Name | Type |
+|------|------|
+| [hcloud_server.agent](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/server) | resource |
 
 ### hetzner_k8s_interfaces Module Resources
 
@@ -153,8 +196,18 @@ The separation of Kubernetes resources into a submodule helps avoid issues with 
 | master_node_ipv4_enabled | Whether IPv4 is enabled for the master node | `bool` | `true` | no |
 | master_node_ipv6_enabled | Whether IPv6 is enabled for the master node | `bool` | `true` | no |
 | master_node_static_ip | Static IP for the master node in the private network | `string` | `"10.0.1.1"` | no |
-| additional_control_planes | Map of additional control plane nodes to create | `map(object)` | `{}` | no |
-| agent_nodes | Map of agent nodes to create | `map(object)` | `{}` | no |
+| additional_control_plane_name | Name of the additional control plane node | `string` | `"additional-control-plane"` | no |
+| additional_control_plane_image | Image for the additional control plane node | `string` | `"ubuntu-24.04"` | no |
+| additional_control_plane_server_type | Server type for the additional control plane node | `string` | `"cx22"` | no |
+| additional_control_plane_location | Location for the additional control plane node | `string` | `"nbg1"` | no |
+| additional_control_plane_ipv4_enabled | Whether IPv4 is enabled for the additional control plane node | `bool` | `true` | no |
+| additional_control_plane_ipv6_enabled | Whether IPv6 is enabled for the additional control plane node | `bool` | `true` | no |
+| agent_name | Name of the agent node | `string` | `"agent-node"` | no |
+| agent_image | Image for the agent node | `string` | `"ubuntu-24.04"` | no |
+| agent_server_type | Server type for the agent node | `string` | `"cx22"` | no |
+| agent_location | Location for the agent node | `string` | `"nbg1"` | no |
+| agent_ipv4_enabled | Whether IPv4 is enabled for the agent node | `bool` | `true` | no |
+| agent_ipv6_enabled | Whether IPv6 is enabled for the agent node | `bool` | `true` | no |
 | ssh_public_key | SSH public key for machine-to-machine communication | `string` | n/a | yes |
 | ssh_private_key | SSH private key for machine-to-machine communication | `string` | n/a | yes |
 | root_password | Password for root user access | `string` | n/a | yes |
