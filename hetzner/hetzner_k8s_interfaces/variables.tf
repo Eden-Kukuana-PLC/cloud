@@ -11,9 +11,12 @@ variable "kubeconfig_path" {
   type        = string
 }
 
+variable "network_id" {
+  description = "The id of the private network"
+  type = string
+}
 
-variable "module_depends_on" {
-  description = "Dependencies for the module"
-  type        = any
-  default     = []
+variable "clusterCIDR" {
+  description = "cluster clusterCIDR"
+  type = string
 }

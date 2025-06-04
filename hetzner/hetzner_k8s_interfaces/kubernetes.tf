@@ -12,9 +12,7 @@ resource "kubernetes_secret" "hcloud" {
   # In Kubernetes YAML, this would be stringData
   data = {
     token = var.hcloud_token
+    network = var.network_id
   }
 
-  depends_on = [
-    null_resource.module_depends_on
-  ]
 }

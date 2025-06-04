@@ -24,4 +24,4 @@ runcmd:
   - # copy the token from the master node
   - REMOTE_TOKEN=$(ssh -o StrictHostKeyChecking=accept-new -i /home/cluster/private_key cluster@${master_node_ip} sudo cat /var/lib/rancher/k3s/server/node-token)
   - # Install k3s as an additional control plane node
-  - curl -sfL https://get.k3s.io | sh -s - server --disable="traefik" --token $REMOTE_TOKEN --server https://${master_node_ip}:6443 --tls-san=${master_node_ip}
+  - curl -sfL https://get.k3s.io | sh -s - server --disable="traefik" --token $REMOTE_TOKEN --server https://${master_node_ip}:6443 --disable-cloud-controller --tls-san=${master_node_ip}

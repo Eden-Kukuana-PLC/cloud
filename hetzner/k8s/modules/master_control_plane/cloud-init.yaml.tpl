@@ -12,6 +12,6 @@ users:
     shell: /bin/bash
 
 runcmd:
-  - curl https://get.k3s.io | sh -s - server --cluster-init --disable="traefik" --tls-san=${master_node_ip}
+  - curl https://get.k3s.io | sh -s - server --cluster-init --disable="traefik" --disable-cloud-controller --tls-san=${master_node_ip}
   - chown cluster:cluster /etc/rancher/k3s/k3s.yaml
   - chown cluster:cluster /var/lib/rancher/k3s/server/node-token

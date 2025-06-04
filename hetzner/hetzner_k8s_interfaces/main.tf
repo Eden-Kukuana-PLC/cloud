@@ -13,13 +13,6 @@ terraform {
   }
 }
 
-# This null resource ensures that the module respects the dependencies
-resource "null_resource" "module_depends_on" {
-  triggers = {
-    depends_on = join(",", var.module_depends_on)
-  }
-}
-
 # Configure the Kubernetes provider
 provider "kubernetes" {
   config_path    = var.kubeconfig_path
