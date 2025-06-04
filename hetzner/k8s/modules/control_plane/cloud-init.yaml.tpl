@@ -19,9 +19,6 @@ write_files:
       ${base64encode(ssh_private_key)}
 
 runcmd:
-  - ufw allow 6443/tcp #apiserver
-  - ufw allow from 10.42.0.0/16 to any #pods
-  - ufw allow from 10.43.0.0/16 to any #services
   - # wait for the master node to be ready by trying to connect to it
   - until curl -k https://${master_node_ip}:6443; do sleep 5; done
   - # copy the token from the master node
